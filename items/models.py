@@ -84,8 +84,13 @@ class Item(models.Model):
         """Create a QR code PNG that encodes the handshake URL."""
         from django.conf import settings as app_settings
 
-        lan = getattr(app_settings, "LAN_HOST", "")
-        if lan:
+        # Priority: RENDER_EXTERNAL_HOSTNAME > LAN_HOST > request > localhost
+        render_host = getattr(app_settings, "RENDER_EXTERNAL_HOSTNAME", "") or ""
+        lan = getattr(app_settings, "LAN_HOST", "") or ""
+
+        if render_host:
+            base = f"https://{render_host}"
+        elif lan:
             base = f"http://{lan}"
         elif request:
             base = request.build_absolute_uri("/")[:-1]

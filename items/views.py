@@ -79,7 +79,8 @@ def item_edit(request, pk):
     if request.method == "POST":
         form = ItemForm(request.POST, request.FILES, instance=item)
         if form.is_valid():
-            form.save()
+            obj = form.save(commit=False)
+            obj.save(request=request)
             django_messages.success(request, "Item updated.")
             return redirect(item.get_absolute_url())
     else:
@@ -180,6 +181,7 @@ def claim_detail(request, pk):
 
 
 @login_required
+@require_POST
 def claim_respond(request, pk, action):
     """Finder approves or rejects a claim."""
     claim = get_object_or_404(Claim, pk=pk)

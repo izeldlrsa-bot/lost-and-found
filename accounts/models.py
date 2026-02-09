@@ -28,12 +28,15 @@ class User(AbstractUser):
     @property
     def masked_email(self) -> str:
         """Return an obfuscated version of the email, e.g. j***n@g***.com"""
-        if not self.email:
+        if not self.email or "@" not in self.email:
             return ""
-        local, domain = self.email.split("@")
-        domain_name, domain_ext = domain.rsplit(".", 1)
+        local, domain = self.email.split("@", 1)
         masked_local = local[0] + "***" + (local[-1] if len(local) > 1 else "")
-        masked_domain = domain_name[0] + "***" + "." + domain_ext
+        if "." in domain:
+            domain_name, domain_ext = domain.rsplit(".", 1)
+            masked_domain = domain_name[0] + "***" + "." + domain_ext
+        else:
+            masked_domain = domain[0] + "***"
         return f"{masked_local}@{masked_domain}"
 
     @property

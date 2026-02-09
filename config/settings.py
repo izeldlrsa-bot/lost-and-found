@@ -139,6 +139,8 @@ CRISPY_TEMPLATE_PACK = "tailwind"
 
 # ─── Network (QR codes use the deployed URL or LAN IP) ──────────────────────
 LAN_HOST = os.environ.get("LAN_HOST", "")
+# RENDER_EXTERNAL_HOSTNAME is already set above for ALLOWED_HOSTS;
+# it's also used by models.Item.generate_qr_code() for QR links.
 
 # ─── Misc ────────────────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
