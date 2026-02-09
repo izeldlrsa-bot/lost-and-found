@@ -2,15 +2,22 @@
 # Render build script — runs on every deploy
 set -o errexit
 
+echo ">>> Python: $(python --version)"
+echo ">>> DATABASE_URL set: ${DATABASE_URL:+YES}"
+
 echo ">>> Installing dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
+
+echo ">>> Creating staticfiles dir..."
+mkdir -p staticfiles
 
 echo ">>> Collecting static files..."
 python manage.py collectstatic --no-input
 
 echo ">>> Running migrations..."
 python manage.py migrate --no-input
+echo ">>> Migrations complete."
 
 echo ">>> Creating superuser (if not exists)..."
 python manage.py shell -c "
