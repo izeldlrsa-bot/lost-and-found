@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ item.title }}? — Lost & Found{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 max-w-lg mx-auto text-center">
+  <h1 class="text-xl font-bold text-gray-900 mb-4">Delete "{{ item.title }}"?</h1>
+  <p class="text-gray-600 mb-6">This action cannot be undone. All associated claims and messages will also be removed.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex justify-center gap-3">
+      {% include "atoms/button.html" with label="Yes, Delete" type="submit" variant="danger" %}
+      <a href="{{ item.get_absolute_url }}"
+         class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
+        Cancel
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

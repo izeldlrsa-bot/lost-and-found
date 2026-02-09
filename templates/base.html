@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Lost &amp; Found{% endblock %}</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#f0f9ff', 100:'#e0f2fe', 500:'#0ea5e9', 600:'#0284c7', 700:'#0369a1' },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="h-full flex flex-col text-gray-800">
+
+  {% include "organisms/navbar.html" %}
+
+  {% if messages %}
+  <div class="max-w-4xl mx-auto w-full px-4 mt-4 space-y-2">
+    {% for message in messages %}
+      {% include "atoms/alert.html" with msg=message %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main class="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "organisms/footer.html" %}
+
+</body>
+</html>

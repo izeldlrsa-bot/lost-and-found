@@ -1,0 +1,18 @@
+{# molecules/chat_bubble.html — A single chat message #}
+{# Usage: {% include "molecules/chat_bubble.html" with msg=msg current_user=request.user %} #}
+{% if msg.sender == current_user %}
+  <div class="flex justify-end mb-3">
+    <div class="max-w-xs lg:max-w-md bg-brand-600 text-white rounded-lg px-4 py-2 shadow">
+      <p class="text-sm">{{ msg.body }}</p>
+      <p class="text-xs text-brand-200 mt-1 text-right">{{ msg.created_at|timesince }} ago</p>
+    </div>
+  </div>
+{% else %}
+  <div class="flex justify-start mb-3">
+    <div class="max-w-xs lg:max-w-md bg-gray-200 text-gray-800 rounded-lg px-4 py-2 shadow">
+      <p class="text-xs font-semibold text-gray-500 mb-1">{{ msg.sender.public_name }}</p>
+      <p class="text-sm">{{ msg.body }}</p>
+      <p class="text-xs text-gray-400 mt-1">{{ msg.created_at|timesince }} ago</p>
+    </div>
+  </div>
+{% endif %}

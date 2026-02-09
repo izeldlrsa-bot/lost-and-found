@@ -1,0 +1,12 @@
+# Lost & Found — MVP dependencies
+Django>=5.0,<5.2
+django-crispy-forms>=2.1
+crispy-tailwind>=1.0
+qrcode[pil]>=7.4
+Pillow>=10.0
+
+# Production / Render
+gunicorn>=21.2
+whitenoise>=6.5
+dj-database-url>=2.1
+psycopg2-binary>=2.9

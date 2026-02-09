@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Claim #{{ claim.id|truncatechars:8 }} — Lost & Found{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  {# ── Left: Claim info ────────────────────────────────────────────── #}
+  <div class="lg:col-span-1">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+      <h2 class="font-semibold text-gray-900 mb-3">Claim Details</h2>
+      <p class="text-sm text-gray-500 mb-1"><strong>Item:</strong> {{ claim.item.title }}</p>
+      <p class="text-sm text-gray-500 mb-1"><strong>Seeker:</strong> {{ claim.seeker.public_name }}</p>
+      <p class="text-sm text-gray-500 mb-1"><strong>Status:</strong>
+        {% if claim.status == "pending" %}
+          {% include "atoms/badge.html" with text="Pending" color="yellow" %}
+        {% elif claim.status == "approved" %}
+          {% include "atoms/badge.html" with text="Approved" color="green" %}
+        {% else %}
+          {% include "atoms/badge.html" with text="Rejected" color="red" %}
+        {% endif %}
+      </p>
+
+      <div class="mt-4">
+        <h3 class="text-sm font-medium text-gray-700 mb-1">Proof of Ownership</h3>
+        <p class="text-sm text-gray-600 bg-gray-50 rounded p-3">{{ claim.proof_of_ownership }}</p>
+      </div>
+
+      {% if request.user == claim.item.finder and claim.status == "pending" %}
+      <div class="mt-4 flex gap-2">
+        <form method="post" action="{% url 'items:claim_respond' pk=claim.pk action='approve' %}">
+          {% csrf_token %}
+          {% include "atoms/button.html" with label="Approve" type="submit" variant="primary" %}
+        </form>
+        <form method="post" action="{% url 'items:claim_respond' pk=claim.pk action='reject' %}">
+          {% csrf_token %}
+          {% include "atoms/button.html" with label="Reject" type="submit" variant="danger" %}
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Right: Live Anonymous Chat ──────────────────────────────────── #}
+  <div class="lg:col-span-2">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col" style="height:520px;">
+
+      {# Chat header #}
+      <div class="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-sm">💬</div>
+          <div>
+            <h2 class="font-semibold text-gray-900 text-sm">Anonymous Chat</h2>
+            <p class="text-xs text-gray-400" id="chat-status">Connected</p>
+          </div>
+        </div>
+        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse" id="live-dot"></div>
+      </div>
+
+      {# Messages area #}
+      <div class="flex-1 overflow-y-auto px-4 py-3" id="chat-box">
+        <div id="messages-container">
+          {# Messages loaded via JS #}
+        </div>
+        <div class="text-center py-12 text-gray-400 text-sm" id="empty-state">
+          <p>🔒 End-to-end private conversation</p>
+          <p class="text-xs mt-1">No personal data is shared. Start typing below.</p>
+        </div>
+      </div>
+
+      {# Input area #}
+      <div class="px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-lg">
+        <form id="chat-form" class="flex gap-2">
+          <input type="text" id="msg-input" placeholder="Type a message…" autocomplete="off" required
+                 class="flex-1 rounded-full border-gray-300 shadow-sm px-4 py-2.5 text-sm focus:ring-brand-500 focus:border-brand-500 border bg-white" />
+          <button type="submit" id="send-btn"
+                  class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-600 hover:bg-brand-700 text-white shadow-sm transition-all active:scale-95">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const CLAIM_ID    = "{{ claim.pk }}";
+  const CSRF_TOKEN  = "{{ csrf_token }}";
+  const POLL_MS     = 2000; // poll every 2 seconds
+  const API_GET     = `/api/claim/${CLAIM_ID}/messages/`;
+  const API_SEND    = `/api/claim/${CLAIM_ID}/send/`;
+
+  const chatBox     = document.getElementById("chat-box");
+  const container   = document.getElementById("messages-container");
+  const emptyState  = document.getElementById("empty-state");
+  const form        = document.getElementById("chat-form");
+  const input       = document.getElementById("msg-input");
+  const sendBtn     = document.getElementById("send-btn");
+  const statusEl    = document.getElementById("chat-status");
+
+  let lastMsgId     = null;
+  let isFirstLoad   = true;
+
+  // ── Render a single message bubble ──────────────────────────────────
+  function renderBubble(msg, animate) {
+    const wrapper = document.createElement("div");
+    wrapper.className = `flex ${msg.is_mine ? "justify-end" : "justify-start"} mb-3`;
+    if (animate) {
+      wrapper.style.opacity = "0";
+      wrapper.style.transform = "translateY(10px)";
+      wrapper.style.transition = "all 0.25s ease-out";
+    }
+
+    if (msg.is_mine) {
+      wrapper.innerHTML = `
+        <div class="max-w-xs lg:max-w-sm bg-brand-600 text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+          <p class="text-sm leading-relaxed">${escapeHtml(msg.body)}</p>
+          <p class="text-[10px] text-brand-200 mt-1 text-right">${msg.time_display}</p>
+        </div>`;
+    } else {
+      wrapper.innerHTML = `
+        <div class="max-w-xs lg:max-w-sm bg-gray-100 text-gray-800 rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">
+          <p class="text-[11px] font-semibold text-brand-600 mb-0.5">${escapeHtml(msg.sender_name)}</p>
+          <p class="text-sm leading-relaxed">${escapeHtml(msg.body)}</p>
+          <p class="text-[10px] text-gray-400 mt-1">${msg.time_display}</p>
+        </div>`;
+    }
+
+    container.appendChild(wrapper);
+
+    if (animate) {
+      requestAnimationFrame(() => {
+        wrapper.style.opacity = "1";
+        wrapper.style.transform = "translateY(0)";
+      });
+    }
+
+    return wrapper;
+  }
+
+  function escapeHtml(text) {
+    const d = document.createElement("div");
+    d.textContent = text;
+    return d.innerHTML;
+  }
+
+  function scrollToBottom(smooth) {
+    chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: smooth ? "smooth" : "instant" });
+  }
+
+  // ── Fetch messages ──────────────────────────────────────────────────
+  async function fetchMessages() {
+    try {
+      let url = API_GET;
+      if (lastMsgId) url += `?after=${lastMsgId}`;
+
+      const res = await fetch(url);
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (data.messages && data.messages.length > 0) {
+        emptyState.style.display = "none";
+
+        data.messages.forEach(msg => {
+          renderBubble(msg, !isFirstLoad);
+          lastMsgId = msg.id;
+        });
+
+        scrollToBottom(!isFirstLoad);
+      }
+
+      isFirstLoad = false;
+      statusEl.textContent = "Connected";
+    } catch (e) {
+      statusEl.textContent = "Reconnecting…";
+    }
+  }
+
+  // ── Send message ────────────────────────────────────────────────────
+  form.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const body = input.value.trim();
+    if (!body) return;
+
+    // Optimistic UI: show the message immediately
+    const tempMsg = {
+      id: "temp-" + Date.now(),
+      body: body,
+      sender_name: "You",
+      is_mine: true,
+      time_display: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    const bubble = renderBubble(tempMsg, true);
+    emptyState.style.display = "none";
+    scrollToBottom(true);
+
+    input.value = "";
+    input.focus();
+    sendBtn.disabled = true;
+
+    try {
+      const formData = new FormData();
+      formData.append("body", body);
+
+      const res = await fetch(API_SEND, {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF_TOKEN },
+        body: formData,
+      });
+
+      if (res.ok) {
+        const msg = await res.json();
+        lastMsgId = msg.id; // update so polling skips this one
+        // Replace temp bubble's time with server time
+        const timeEl = bubble.querySelector(".text-brand-200, .text-\\[10px\\]");
+        if (timeEl) timeEl.textContent = msg.time_display;
+      }
+    } catch (e) {
+      // Optionally show send failure
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+
+  // Allow Enter to send
+  input.addEventListener("keydown", function(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      form.dispatchEvent(new Event("submit"));
+    }
+  });
+
+  // ── Start polling ───────────────────────────────────────────────────
+  fetchMessages();                       // initial load
+  setInterval(fetchMessages, POLL_MS);   // poll every 2s
+
+  // Focus input on load
+  input.focus();
+})();
+</script>
+{% endblock %}

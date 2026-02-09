@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Report a Found Item — Lost & Found{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Report a Found Item</h1>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <div class="mt-4">
+      {% include "atoms/button.html" with label="Post Item" type="submit" variant="primary" %}
+    </div>
+  </form>
+</div>
+{% endblock %}

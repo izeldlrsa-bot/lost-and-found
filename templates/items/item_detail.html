@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }} — Lost & Found{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+  {% if item.image %}
+    <img src="{{ item.image.url }}" alt="{{ item.title }}" class="w-full h-64 object-cover" />
+  {% endif %}
+
+  <div class="p-6">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ item.title }}</h1>
+        <p class="text-sm text-gray-500 mt-1">{{ item.neighborhood }}, {{ item.city }} · {{ item.created_at|timesince }} ago</p>
+      </div>
+      {% if item.status == "found" %}
+        {% include "atoms/badge.html" with text="Found" color="green" %}
+      {% elif item.status == "claimed" %}
+        {% include "atoms/badge.html" with text="Claimed" color="yellow" %}
+      {% else %}
+        {% include "atoms/badge.html" with text="Returned" color="blue" %}
+      {% endif %}
+    </div>
+
+    <p class="text-gray-700 mb-6">{{ item.description }}</p>
+
+    <div class="flex flex-wrap items-center gap-3 text-sm">
+      {% include "atoms/badge.html" with text=item.get_category_display color="gray" %}
+      <span class="text-gray-400">Posted by {{ item.finder.public_name }}</span>
+    </div>
+
+    {# QR Code section #}
+    {% if item.qr_code %}
+    <div class="mt-8 border-t pt-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">QR Handshake</h2>
+      <p class="text-sm text-gray-500 mb-3">Print or share this QR code. Scanning it leads the owner directly to the claim form.</p>
+      <img src="{{ item.qr_code.url }}" alt="QR Code" class="w-48 h-48 border rounded" />
+    </div>
+    {% endif %}
+
+    {# ── Claims section (visible to finder only) ────────────────────── #}
+    {% if claims is not None %}
+    <div class="mt-8 border-t pt-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">
+        📋 Incoming Claims
+        {% if claims %}
+          <span class="ml-2 inline-flex items-center rounded-full bg-red-100 text-red-800 px-2.5 py-0.5 text-xs font-medium">{{ claims|length }}</span>
+        {% endif %}
+      </h2>
+
+      {% if claims %}
+        <div class="space-y-3">
+          {% for claim in claims %}
+          <a href="{{ claim.get_absolute_url }}" class="block bg-gray-50 rounded-lg border border-gray-200 p-4 hover:bg-gray-100 hover:shadow-sm transition">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-medium text-gray-900">{{ claim.seeker.public_name }}</p>
+                <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ claim.proof_of_ownership|truncatewords:25 }}</p>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                {% if claim.status == "pending" %}
+                  {% include "atoms/badge.html" with text="Pending" color="yellow" %}
+                {% elif claim.status == "approved" %}
+                  {% include "atoms/badge.html" with text="Approved" color="green" %}
+                {% else %}
+                  {% include "atoms/badge.html" with text="Rejected" color="red" %}
+                {% endif %}
+                {% with msg_count=claim.messages.count %}
+                  {% if msg_count > 0 %}
+                    <span class="text-xs text-blue-600 font-medium">💬 {{ msg_count }} message{{ msg_count|pluralize }}</span>
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">Submitted {{ claim.created_at|timesince }} ago</p>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-gray-400">No claims yet. Share the QR code so the owner can find you!</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# Actions #}
+    <div class="mt-6 flex flex-wrap gap-3">
+      {% if user.is_authenticated and user != item.finder and item.status == "found" %}
+        <a href="{% url 'items:claim_create' item_pk=item.pk %}"
+           class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-brand-600 hover:bg-brand-700">
+          Claim This Item
+        </a>
+      {% endif %}
+
+      {% if user == item.finder %}
+        <a href="{% url 'items:item_edit' pk=item.pk %}"
+           class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
+          Edit
+        </a>
+        <a href="{% url 'items:item_delete' pk=item.pk %}"
+           class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-red-600 hover:underline">
+          Delete
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

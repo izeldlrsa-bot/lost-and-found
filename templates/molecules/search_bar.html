@@ -1,0 +1,19 @@
+{# molecules/search_bar.html — Search + category filter #}
+<form method="get" action="{% url 'items:item_list' %}" class="flex flex-col sm:flex-row gap-3 mb-8">
+  <input type="text" name="q" value="{{ search_query|default:'' }}"
+         placeholder="Search items, neighbourhoods…"
+         class="flex-1 rounded-md border-gray-300 shadow-sm px-4 py-2 text-sm focus:ring-brand-500 focus:border-brand-500 border" />
+  <select name="category"
+          class="rounded-md border-gray-300 shadow-sm px-4 py-2 text-sm focus:ring-brand-500 focus:border-brand-500 border">
+    <option value="">All categories</option>
+    <option value="electronics" {% if selected_category == "electronics" %}selected{% endif %}>Electronics</option>
+    <option value="clothing"    {% if selected_category == "clothing" %}selected{% endif %}>Clothing</option>
+    <option value="documents"   {% if selected_category == "documents" %}selected{% endif %}>Documents / IDs</option>
+    <option value="keys"        {% if selected_category == "keys" %}selected{% endif %}>Keys</option>
+    <option value="bags"        {% if selected_category == "bags" %}selected{% endif %}>Bags &amp; Wallets</option>
+    <option value="pets"        {% if selected_category == "pets" %}selected{% endif %}>Pets</option>
+    <option value="jewelry"     {% if selected_category == "jewelry" %}selected{% endif %}>Jewelry</option>
+    <option value="other"       {% if selected_category == "other" %}selected{% endif %}>Other</option>
+  </select>
+  {% include "atoms/button.html" with label="Search" type="submit" variant="primary" %}
+</form>

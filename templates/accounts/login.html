@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Login — Lost & Found{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Welcome Back</h1>
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <form method="post">
+      {% csrf_token %}
+      {{ form|crispy }}
+      <div class="mt-4">
+        {% include "atoms/button.html" with label="Login" type="submit" variant="primary" %}
+      </div>
+    </form>
+    <p class="text-sm text-gray-500 mt-4 text-center">
+      No account? <a href="{% url 'accounts:signup' %}" class="text-brand-600 hover:underline">Sign up</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

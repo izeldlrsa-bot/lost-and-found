@@ -1,0 +1,10 @@
+{# atoms/alert.html — A single dismissible flash message #}
+{% load i18n %}
+<div class="rounded-md p-4
+  {% if msg.tags == 'success' %}bg-green-50 text-green-800 border border-green-300
+  {% elif msg.tags == 'error' %}bg-red-50 text-red-800 border border-red-300
+  {% elif msg.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-300
+  {% else %}bg-blue-50 text-blue-800 border border-blue-300{% endif %}
+">
+  <p class="text-sm font-medium">{{ msg }}</p>
+</div>

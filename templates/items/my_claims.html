@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}My Claims — Lost & Found{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-6">My Claims</h1>
+
+{% if claims %}
+  <div class="space-y-4">
+    {% for claim in claims %}
+    <a href="{{ claim.get_absolute_url }}" class="block bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="font-semibold text-gray-900">{{ claim.item.title }}</p>
+          <p class="text-sm text-gray-500">{{ claim.item.neighborhood }}, {{ claim.item.city }}</p>
+        </div>
+        {% if claim.status == "pending" %}
+          {% include "atoms/badge.html" with text="Pending" color="yellow" %}
+        {% elif claim.status == "approved" %}
+          {% include "atoms/badge.html" with text="Approved" color="green" %}
+        {% else %}
+          {% include "atoms/badge.html" with text="Rejected" color="red" %}
+        {% endif %}
+      </div>
+      <p class="text-xs text-gray-400 mt-2">Submitted {{ claim.created_at|timesince }} ago</p>
+    </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-gray-400 text-center py-16">You haven't submitted any claims yet.</p>
+{% endif %}
+{% endblock %}

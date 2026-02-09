@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Claim {{ item.title }} — Lost & Found{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-2">Claim: {{ item.title }}</h1>
+<p class="text-gray-500 text-sm mb-6">Prove this item is yours. Describe details only the real owner would know.</p>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <form method="post">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <div class="mt-4">
+      {% include "atoms/button.html" with label="Submit Claim" type="submit" variant="primary" %}
+    </div>
+  </form>
+</div>
+{% endblock %}
