@@ -9,8 +9,8 @@ services:
     name: lostandfound
     plan: free
     runtime: python
-    buildCommand: "./build.sh"
-    startCommand: "gunicorn config.wsgi:application"
+    buildCommand: "bash build.sh"
+    startCommand: "python manage.py migrate --no-input && gunicorn config.wsgi:application"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
