@@ -77,8 +77,15 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # ─── Database ────────────────────────────────────────────────────────────────
 # Use DATABASE_URL env var on Render (PostgreSQL), fall back to SQLite locally.
+# Render may set DATABASE_URL to a placeholder like "://" before the DB is
+# fully provisioned, so we validate that it contains a real scheme first.
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
-if DATABASE_URL:
+_url_has_scheme = (
+    DATABASE_URL
+    and "://" in DATABASE_URL
+    and DATABASE_URL.index("://") > 0  # something before ://
+)
+if _url_has_scheme:
     DATABASES = {
         "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
