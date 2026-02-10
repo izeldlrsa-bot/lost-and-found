@@ -36,5 +36,82 @@
 
   {% include "organisms/footer.html" %}
 
+  {% if user.is_authenticated %}
+  <script>
+  (function() {
+    const bell      = document.getElementById('notif-bell');
+    const badge     = document.getElementById('notif-badge');
+    const dropdown  = document.getElementById('notif-dropdown');
+    const list      = document.getElementById('notif-list');
+    const markAll   = document.getElementById('notif-mark-all');
+    const wrapper   = document.getElementById('notif-wrapper');
+    if (!bell) return;
+
+    let open = false;
+
+    /* Toggle dropdown */
+    bell.addEventListener('click', function(e) {
+      e.stopPropagation();
+      open = !open;
+      dropdown.classList.toggle('hidden', !open);
+    });
+
+    /* Close when clicking outside */
+    document.addEventListener('click', function(e) {
+      if (open && !wrapper.contains(e.target)) {
+        open = false;
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    /* Fetch notifications */
+    function poll() {
+      fetch('{% url "items:api_notifications" %}')
+        .then(r => r.json())
+        .then(data => {
+          /* Update badge */
+          if (data.unread_count > 0) {
+            badge.textContent = data.unread_count > 9 ? '9+' : data.unread_count;
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+          /* Update list */
+          if (data.notifications.length === 0) {
+            list.innerHTML = '<p class="px-4 py-6 text-sm text-gray-400 text-center">No new notifications</p>';
+          } else {
+            list.innerHTML = data.notifications.map(n => {
+              const link = n.claim_url
+                ? `<a href="${n.claim_url}" class="block px-4 py-3 hover:bg-gray-50 transition">`
+                : '<div class="px-4 py-3">';
+              const close = n.claim_url ? '</a>' : '</div>';
+              return link +
+                '<p class="text-sm text-gray-800">' + n.message + '</p>' +
+                '<p class="text-xs text-gray-400 mt-1">' + n.time_display + '</p>' +
+                close;
+            }).join('');
+          }
+        })
+        .catch(() => {});
+    }
+
+    /* Mark all read */
+    markAll.addEventListener('click', function() {
+      fetch('{% url "items:api_mark_notifications_read" %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                         || '{{ csrf_token }}',
+        },
+      }).then(() => poll());
+    });
+
+    /* Poll every 10 seconds */
+    poll();
+    setInterval(poll, 10000);
+  })();
+  </script>
+  {% endif %}
+
 </body>
 </html>

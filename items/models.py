@@ -194,3 +194,34 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Msg {str(self.id)[:8]} in claim {str(self.claim_id)[:8]}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Notification
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class Notification(models.Model):
+    """A lightweight in-app notification for finders."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    claim = models.ForeignKey(
+        Claim,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        null=True,
+        blank=True,
+    )
+    message = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Notif → {self.recipient} : {self.message[:40]}"

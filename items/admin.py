@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Claim, Item, Message
+from .models import Claim, Item, Message, Notification
 
 
 class ClaimInline(admin.TabularInline):
@@ -35,4 +35,11 @@ class ClaimAdmin(admin.ModelAdmin):
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     list_display = ("__str__", "sender", "created_at")
+    readonly_fields = ("id", "created_at")
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("recipient", "message", "is_read", "created_at")
+    list_filter = ("is_read",)
     readonly_fields = ("id", "created_at")

@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import ClaimForm, ItemForm, MessageForm
-from .models import Claim, ClaimStatus, Item, ItemStatus, Message
+from .models import Claim, ClaimStatus, Item, ItemStatus, Message, Notification
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -141,6 +141,12 @@ def claim_create(request, item_pk):
             claim.item = item
             claim.seeker = request.user
             claim.save()
+            # Notify the finder in real-time
+            Notification.objects.create(
+                recipient=item.finder,
+                claim=claim,
+                message=f"{request.user.public_name} submitted a claim on \"{item.title}\".",
+            )
             django_messages.success(request, "Claim submitted! The finder will review it.")
             return redirect(claim.get_absolute_url())
     else:
@@ -279,3 +285,37 @@ def api_send_message(request, pk):
         "created_at": msg.created_at.isoformat(),
         "time_display": f"{msg.created_at.strftime('%I:%M %p')}",
     })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Notification API
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@login_required
+def api_notifications(request):
+    """Return unread notifications + total unread count as JSON."""
+    qs = Notification.objects.filter(recipient=request.user, is_read=False)
+    unread_count = qs.count()
+    notifications = [
+        {
+            "id": str(n.id),
+            "message": n.message,
+            "claim_url": n.claim.get_absolute_url() if n.claim else None,
+            "created_at": n.created_at.isoformat(),
+            "time_display": n.created_at.strftime("%b %d, %I:%M %p"),
+        }
+        for n in qs[:20]
+    ]
+    return JsonResponse({"unread_count": unread_count, "notifications": notifications})
+
+
+@login_required
+@require_POST
+def api_mark_notifications_read(request):
+    """Mark all (or specific) notifications as read."""
+    notif_id = request.POST.get("id")
+    qs = Notification.objects.filter(recipient=request.user, is_read=False)
+    if notif_id:
+        qs = qs.filter(pk=notif_id)
+    qs.update(is_read=True)
+    return JsonResponse({"status": "ok"})

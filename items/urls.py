@@ -26,6 +26,10 @@ urlpatterns = [
     path("api/claim/<uuid:pk>/messages/", views.api_messages, name="api_messages"),
     path("api/claim/<uuid:pk>/send/", views.api_send_message, name="api_send_message"),
 
+    # ── Notifications API ─────────────────────────────────────────────────
+    path("api/notifications/", views.api_notifications, name="api_notifications"),
+    path("api/notifications/read/", views.api_mark_notifications_read, name="api_mark_notifications_read"),
+
     # ── Dashboards ────────────────────────────────────────────────────────
     path("my/items/", views.my_items, name="my_items"),
     path("my/claims/", views.my_claims, name="my_claims"),
