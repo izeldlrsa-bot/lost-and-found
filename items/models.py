@@ -5,6 +5,7 @@ Item  – a found object reported by a finder.
 Claim – a seeker's "proof of ownership" request linked to an item's UUID.
 Message – anonymous chat messages scoped to a Claim (no PII exchanged).
 """
+import base64
 import io
 import uuid
 
@@ -80,37 +81,46 @@ class Item(models.Model):
         return reverse("items:item_handshake", kwargs={"handshake_uuid": self.handshake_uuid})
 
     # ── QR generation ─────────────────────────────────────────────────────
-    def generate_qr_code(self, request=None):
-        """Create a QR code PNG that encodes the handshake URL."""
+    def _get_qr_base_url(self, request=None):
+        """Resolve the public base URL for QR links."""
         from django.conf import settings as app_settings
 
-        # Priority: RENDER_EXTERNAL_HOSTNAME > LAN_HOST > request > localhost
         render_host = getattr(app_settings, "RENDER_EXTERNAL_HOSTNAME", "") or ""
         lan = getattr(app_settings, "LAN_HOST", "") or ""
 
         if render_host:
-            base = f"https://{render_host}"
+            return f"https://{render_host}"
         elif lan:
-            base = f"http://{lan}"
+            return f"http://{lan}"
         elif request:
-            base = request.build_absolute_uri("/")[:-1]
-        else:
-            base = "http://localhost:8000"
+            return request.build_absolute_uri("/")[:-1]
+        return "http://localhost:8000"
 
-        link = f"{base}{self.get_handshake_url()}"
-
+    def _make_qr_png_bytes(self, request=None):
+        """Return raw PNG bytes for the handshake QR code."""
+        link = f"{self._get_qr_base_url(request)}{self.get_handshake_url()}"
         qr = qrcode.QRCode(version=1, box_size=10, border=4)
         qr.add_data(link)
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
-
         buf = io.BytesIO()
         img.save(buf, format="PNG")
+        return buf.getvalue()
+
+    @property
+    def qr_code_data_uri(self):
+        """Return a base64 data-URI for the QR code (no filesystem needed)."""
+        png_bytes = self._make_qr_png_bytes()
+        b64 = base64.b64encode(png_bytes).decode("ascii")
+        return f"data:image/png;base64,{b64}"
+
+    def generate_qr_code(self, request=None):
+        """Create a QR code PNG and save it to the qr_code ImageField."""
+        png_bytes = self._make_qr_png_bytes(request)
         filename = f"qr_{self.handshake_uuid}.png"
-        self.qr_code.save(filename, ContentFile(buf.getvalue()), save=False)
+        self.qr_code.save(filename, ContentFile(png_bytes), save=False)
 
     def save(self, *args, **kwargs):
-        # Generate QR on first save (no qr_code yet)
         request = kwargs.pop("request", None)
         if not self.qr_code:
             self.generate_qr_code(request=request)

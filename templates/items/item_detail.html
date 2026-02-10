@@ -29,14 +29,12 @@
       <span class="text-gray-400">Posted by {{ item.finder.public_name }}</span>
     </div>
 
-    {# QR Code section #}
-    {% if item.qr_code %}
+    {# QR Code section — rendered as inline base64, no media file needed #}
     <div class="mt-8 border-t pt-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-2">QR Handshake</h2>
       <p class="text-sm text-gray-500 mb-3">Print or share this QR code. Scanning it leads the owner directly to the claim form.</p>
-      <img src="{{ item.qr_code.url }}" alt="QR Code" class="w-48 h-48 border rounded" />
+      <img src="{{ item.qr_code_data_uri }}" alt="QR Code" class="w-48 h-48 border rounded" />
     </div>
-    {% endif %}
 
     {# ── Claims section (visible to finder only) ────────────────────── #}
     {% if claims is not None %}
